@@ -394,6 +394,8 @@ class DeleteUserTestCase(TestCase):
         self.assertEqual(resp.status_code, 200)
         api_resp = json.loads(resp.data.decode())
         self.assertTrue(api_resp["success"])
+
+        self.assertTrue(len(BlackListToken.query.all()) == 0)
         
         
     # Remove all the users
