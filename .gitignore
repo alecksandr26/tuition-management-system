@@ -1,4 +1,5 @@
 
+apps/api/migrations/*
 */env/*
 
 # Test db
