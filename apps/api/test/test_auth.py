@@ -324,7 +324,78 @@ class DeleteUserTestCase(TestCase):
         self.assertEqual(resp.status_code, 401)
         api_resp = json.loads(resp.data.decode())
         self.assertFalse(api_resp["success"])
-    
+
+    def test_delete_cascade_tokens(self):
+        resp = self.client.post(
+            "/api/auth/logout",
+            headers = {
+                "x-access-tokens" : self.signup_token
+            }
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        api_resp = json.loads(resp.data.decode())
+        self.assertTrue(api_resp["success"])
+
+        time.sleep(1)
+        
+        resp = self.client.post(
+            "/api/auth/login",
+            data = json.dumps({
+                "email" : self.test_user["email"],
+                "passwd" : self.test_user["passwd"]
+            }),
+            content_type = "application/json"
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        api_resp = json.loads(resp.data.decode())
+        self.assertTrue(api_resp["success"])
+        
+        self.signup_token = api_resp["data"]["token"]
+        
+        resp = self.client.post(
+            "/api/auth/logout",
+            headers = {
+                "x-access-tokens" : self.signup_token
+            }
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        api_resp = json.loads(resp.data.decode())
+        self.assertTrue(api_resp["success"])
+
+
+        time.sleep(1)
+
+        resp = self.client.post(
+            "/api/auth/login",
+            data = json.dumps({
+                "email" : self.test_user["email"],
+                "passwd" : self.test_user["passwd"]
+            }),
+            content_type = "application/json"
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        api_resp = json.loads(resp.data.decode())
+        self.assertTrue(api_resp["success"])
+        self.signup_token = api_resp["data"]["token"]
+        
+        self.assertTrue(len(BlackListToken.query.all()) > 0)
+
+        resp = self.client.delete(
+            "/api/auth/delete",
+            headers = {
+                "x-access-tokens" : self.signup_token
+            }
+        )
+
+        self.assertEqual(resp.status_code, 200)
+        api_resp = json.loads(resp.data.decode())
+        self.assertTrue(api_resp["success"])
+        
+        
     # Remove all the users
     def tearDown(self):
         db.drop_all()
