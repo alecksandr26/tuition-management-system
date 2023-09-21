@@ -23,8 +23,9 @@ class BlackListToken(db.Model):
 
 class PlanOfPayment(db.Model):
     __tablename__ = "PlanOfPayment"
-    
-    name = db.Column(db.String(255), primary_key = True)
+
+    id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+    name = db.Column(db.String(255), unique = True)
     user_id = db.Column(db.Integer, db.ForeignKey("User.id"), nullable = False)
     desc = db.Column(db.Text, nullable = True)
     number_of_classes = db.Column(db.Integer, nullable = False)
@@ -40,8 +41,8 @@ class PlanOfPayment(db.Model):
         assert isinstance(method, int)
         if desc != None:
             assert isinstance(desc, str)
-            self.desc = desc
             
+        self.desc = desc
         self.name = name
         self.user_id = user_id
         self.number_of_classes = number_of_classes
@@ -50,6 +51,78 @@ class PlanOfPayment(db.Model):
         
     def __repr__(self):
         return "<PlanOfPayment {} - {}/{}>".format(self.id, self.user_id, self.name)
+
+    def to_dict(self):
+        return {
+            "id" : self.id,
+            "name" : self.name,
+            "user_id" : self.user_id,
+            "desc" : self.desc,
+            "number_of_classes" : self.number_of_classes,
+            "price" : self.price,
+            "method" : self.method
+        }
+
+class Paid(db.Model):
+    __tablename__ = "Paid"
+
+    id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+    total = db.Column(db.Float, nullable = False)
+    remainder = db.Column(db.Float, nullable = True)
+    date = db.Column(db.Date, nullable = True)
+    paided = db.Column(db.Bool, nullable = False)
+    method = db.Column(db.Integer, nullable = False)
+
+    def __init__(self, total : float, method : int, paided : bool = False,
+                 date : datetime.date = None, remainder : float = None):
+        
+        assert isinstance(total, float)
+        assert isinstance(method, int)
+        assert isinstance(paided, bool)
+
+        if date != None:
+            assert isinstance(date, datetime.date)
+
+        if remainder != None:
+            assert isinstance(remainder, float)
+
+        self.total = total
+        self.method = method
+        self.paided = paided
+        self.date = date if date != None else datetime.date.today()
+        self.remainder = remainder if remainder != None else 0.0
+        
+    def __repr__(self):
+        return "<Paid {} - {}$ / {}>".format(self.id, self.total, self.date)
+
+    def to_dict(self):
+        return {
+            "id" : self.id,
+            "total" : self.total,
+            "remainder" : self.remainder,
+            "date" : self.date,
+            "paided" : self.paided,
+            "method" : self.method
+        }
+
+
+class Fee(db.Model):
+    __tablename__ = "Fee"
+
+    id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+    user_id = db.Column(db.Integer, db.ForeignKey("User.id"), nullable = False)
+    paid_id = db.Column(db.Integer, db.ForeignKey("Paid.id"), nullable = False)
+    plan_name = db.Column(db.String(255), db.ForeignKey("PlanOfPayment.name"), nullable = False)
+    limit_date = db.Column(db.Date, nullable = True)
+
+    def __init__(self, user_id, paid_id, plan_name):
+        pass
+
+    def __repr__(self):
+        pass
+
+    def to_dict(self):
+        pass
 
 class Student(db.Model):
     __tablename__ = "Student"
@@ -61,31 +134,51 @@ class Student(db.Model):
     phone = db.Column(db.String(255), nullable = False)
     email = db.Column(db.String(255), nullable = True, unique = True)
     birthday = db.Column(db.Date, nullable = True)
-    regdate = db.Column(db.Date, nullable = False)
+    enrollment_date = db.Column(db.Date, nullable = False)
 
     def __init__(self, plan_name : str, user_id : int, name : str,
-                 phone : str, regdate : datetime.date, email : str = None,
+                 phone : str, enrollment_date : datetime.date = None, email : str = None,
                  birthday : datetime.date = None):
+
         assert isinstance(plan_name, str)
         assert isinstance(user_id, int)
         assert isinstance(name, str)
         assert isinstance(phone, str)
-        assert isinstance(regdate, datetime.date)
+        
         if email != None:
             assert isinstance(email, str)
-            self.email = email
+            
         if birthday != None:
             assert isinstance(birthday, datetime.date)
-            self.birthday = birthday
 
         self.plan_name = plan_name
         self.user_id = user_id
         self.name = name
         self.phone = phone
-        self.regdate = regdate
+        self.enrollment_date = enrollment_date if enrollment_date != None else datetime.date.today()
+        self.email = email
+        self.birthday = birthday
         
     def __repr__(self):
         return "<Student {} - {}>".format(self.id, self.name)
+
+    def to_dict(self):
+        student = {
+            "id" : self.id,
+            "plan_name" : self.plan_name,
+            "user_id" : self.user_id,
+            "name" : self.name,
+            "phone" : self.phone,
+            "enrollment_date" : self.enrollment_date 
+        }
+
+        if self.email != None:
+            student["email"] = self.email
+            
+        if self.birthday != None:
+            student["birthday"] = self.birthday
+            
+        return student
     
 
 class User(db.Model):

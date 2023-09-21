@@ -19,13 +19,19 @@ pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 @bp.route('/login', methods = ["POST"])
 def login():
     data = request.json
+    
+    if not isinstance(data, dict):
+        return make_response(jsonify({
+            "success" : False,
+            "message" : "Error invalid input"
+        }), 422)
 
     # Verify the data
     if not "passwd" in data.keys():
-        return jsonify({ "success" : False, "message" : "Error needs a passwd field" })
+        return make_response(jsonify({ "success" : False, "message" : "Error needs a passwd field" }), 422)
 
     if not "email" in data.keys():
-        return jsonify({ "success" : False, "message" : "Error needs a email field" })
+        return make_response(jsonify({ "success" : False, "message" : "Error needs a email field" }), 422)
     elif not re.match(pattern, data["email"]):
         return make_response(jsonify({ "success" : False, "message" : "Error invalid email" }), 422)
 
@@ -49,37 +55,38 @@ def login():
 def signup():
     data = request.json
 
-    # Verify the data
-    if not "name" in data.keys():
-        return make_response(jsonify({ "success" : False, "message" : "Error needs a name field" }), 422)
-    elif data["name"] == "" or len(data["name"]) > User.__table__.columns.name.type.length:
-        return make_response(jsonify({ "success" : False, "message" : "Error invalid name" }), 422)
+    if not isinstance(data, dict):
+        return make_response(jsonify({
+            "success" : False,
+            "message" : "Error invalid input"
+        }), 422)
 
-    if not "passwd" in data.keys():
+    # Verify the data
+    if not "name" in data.keys() or data["name"] == "": 
+        return make_response(jsonify({ "success" : False, "message" : "Error needs a name field" }), 422)
+
+    if not "passwd" in data.keys() or data["passwd"] == "":
         return make_response(jsonify({ "success" : False, "message" : "Error needs a passwd field" }), 422)
-    elif data["passwd"] == "" or len(data["passwd"]) > User.__table__.columns.passwd.type.length:
-        return make_response(jsonify({ "success" : False, "message" : "Error invalid passwd" }), 422)
     
-    if not "email" in data.keys():
+    if not "email" in data.keys() or data["email"] == "": 
         return make_response(jsonify({ "success" : False, "message" : "Error needs a email field" }), 422)
-    elif data["email"] == "" \
-         or len(data["email"]) > User.__table__.columns.email.type.length \
-         or not re.match(pattern, data["email"]):
-        return make_response(jsonify({ "success" : False, "message" : "Error invalid email" }), 422)
     
-    if not "schoolname" in data.keys():
+    if not "schoolname" in data.keys() or data["schoolname"] == "":
         return make_response(jsonify({ "success" : False, "message" : "Error needs a schoolname field" }), 422)
-    elif data["schoolname"] == "" or len(data["schoolname"]) > User.__table__.columns.schoolname.type.length:
-        return make_response(jsonify({ "success" : False, "message" : "Error invalid schoolname" }), 422)
 
     # check if the users exist
     user_model = User.query.filter_by(email = data["email"]).first()
     if user_model != None:
         return make_response(jsonify({ "success" : False, "message" : "The user already exist" }), 409)
 
-    user_model = User(data["name"], data["email"], generate_password_hash(data["passwd"]), data["schoolname"])
-    db.session.add(user_model)
-    db.session.commit()
+    try:
+        user_model = User(data["name"], data["email"],
+                          generate_password_hash(data["passwd"]), data["schoolname"])
+        db.session.add(user_model)
+        db.session.commit()
+    except Exception as e:
+        return make_response(jsonify({ "success" : False, "message" : f"Error: {e}" }), 404)
+    
     
     # Return a success response with a 201 status code
     return make_response(jsonify({
@@ -107,6 +114,12 @@ def fetch_settings(user_session):
 def update_settings(user_session):
     user_model = user_session.query_data()
     data = request.json
+
+    if not isinstance(data, dict):
+        return make_response(jsonify({
+            "success" : False,
+            "message" : "Error invalid input"
+        }), 422)
     
     if not data:
         return make_response(jsonify({
@@ -156,7 +169,7 @@ def delete_user(user_session):
         "message" : "User deleted"
     }), 200)
 
-@bp.route("/logout", methods = ["POST"])
+@bp.route("/logout", methods = ["GET"])
 @token_required
 def logout_user(user_session):
     black_list_token = BlackListToken(user_session.token, int(user_session.id))

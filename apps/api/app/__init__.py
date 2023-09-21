@@ -25,7 +25,14 @@ def create_app(config_class = Config) -> Flask:
     # Register blueprints here
     
     from app.auth import bp as auth_bp
-    app.register_blueprint(auth_bp) # Link the auth
+    app.register_blueprint(auth_bp)
+
+    from app.student import bp as student_bp
+    app.register_blueprint(student_bp)
+
+    from app.plan import bp as plan_bp
+    app.register_blueprint(plan_bp)
+
     
     @app.cli.command("test")
     @click.option('--file', default = None, help = 'Path to a specific test file')

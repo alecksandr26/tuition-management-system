@@ -243,7 +243,7 @@ class LogOutTestCase(TestCase):
 
 
     def test_logout(self):
-        resp = self.client.post(
+        resp = self.client.get(
             "/api/auth/logout",
             headers = {
                 "x-access-tokens" : self.signup_token
@@ -326,7 +326,7 @@ class DeleteUserTestCase(TestCase):
         self.assertFalse(api_resp["success"])
 
     def test_delete_cascade_tokens(self):
-        resp = self.client.post(
+        resp = self.client.get(
             "/api/auth/logout",
             headers = {
                 "x-access-tokens" : self.signup_token
@@ -354,7 +354,7 @@ class DeleteUserTestCase(TestCase):
         
         self.signup_token = api_resp["data"]["token"]
         
-        resp = self.client.post(
+        resp = self.client.get(
             "/api/auth/logout",
             headers = {
                 "x-access-tokens" : self.signup_token
